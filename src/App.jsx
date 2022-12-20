@@ -1,34 +1,54 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import React, { useEffect, useState } from 'react';
+
+import Tasks from './components/Tasks/Tasks';
+import NewTask from './components/NewTask/NewTask';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [tasks, setTasks] = useState([]);
+
+  const fetchTasks = async taskText => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        'https://react-http-d08ab-default-rtdb.asia-southeast1.firebasedatabase.app/tasks.json'
+      );
+
+      if (!response.ok) {
+        throw new Error('Request failed!');
+      }
+
+      const data = await response.json();
+
+      const loadedTasks = [];
+
+      for (const taskKey in data) {
+        loadedTasks.push({ id: taskKey, text: data[taskKey].text });
+      }
+
+      setTasks(loadedTasks);
+    } catch (err) {
+      setError(err.message || 'Something went wrong!');
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const taskAddHandler = task => {
+    setTasks(prevTasks => prevTasks.concat(task));
+  };
 
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </div>
-  )
+    <React.Fragment>
+      <NewTask onAddTask={taskAddHandler} />
+      <Tasks items={tasks} loading={isLoading} error={error} onFetch={fetchTasks} />
+    </React.Fragment>
+  );
 }
 
-export default App
+export default App;
